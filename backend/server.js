@@ -14,14 +14,49 @@ ConnectDB();
 app.post("/addUserDetails", async (req, resp) => {
   const { name, email, password } = req.body;
 
-  const newUser = new User({
-    name,
-    email,
-    password,
-  });
+  if (!email || !password) {
+    return resp
+      .status(400)
+      .json({ success: false, message: "Email and password are required." });
+  }
 
-  await newUser.save();
-  resp.json({ success: true, message: "Data added Successfully" });
+  if (name) {
+    // Sign-up logic
+    try {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return resp
+          .status(400)
+          .json({ success: false, message: "Email already exists." });
+      }
+
+      const newUser = new User({ name, email, password });
+      await newUser.save();
+      return resp.json({
+        success: true,
+        message: "Account created successfully.",
+      });
+    } catch (err) {
+      return resp
+        .status(500)
+        .json({ success: false, message: "Server error." });
+    }
+  } else {
+    // Sign-in logic
+    try {
+      const user = await User.findOne({ email, password });
+      if (!user) {
+        return resp
+          .status(400)
+          .json({ success: false, message: "Invalid email or password." });
+      }
+      return resp.json({ success: true, message: "Sign-in successful." });
+    } catch (err) {
+      return resp
+        .status(500)
+        .json({ success: false, message: "Server error." });
+    }
+  }
 });
 
 app.listen(port, () =>
